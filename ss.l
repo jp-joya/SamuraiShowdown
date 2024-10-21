@@ -11,9 +11,9 @@
 "C"	{ return PATADA_DEBIL;}
 ">"     { return DERECHA;}
 "|"	{ return ABAJO;}
-";"	{ return ';';}
-
-[ \t\n] { /* Ignorar espacios en blanco */ }
+"\n"	{ return '\n';}
+" "	{ return ' ';}
+"\t" { /* Ignorar espacios en blanco */ }
 .       { /* Error para cualquier otro caracter */ }
 
 %%
