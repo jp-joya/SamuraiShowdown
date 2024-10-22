@@ -10,11 +10,11 @@
 "B"	{ return CORTE_MEDIO;}
 "C"	{ return PATADA_DEBIL;}
 ">"     { return DERECHA;}
-"|"	{ return ABAJO;}
+"v"	{ return ABAJO;}
 "\n"	{ return '\n';}
 " "	{ return ' ';}
 "\t" { /* Ignorar espacios en blanco */ }
-.       { /* Error para cualquier otro caracter */ }
+.    {}
 
 %%
 

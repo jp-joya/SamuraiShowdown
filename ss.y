@@ -15,13 +15,17 @@ typedef struct {
     int vida;
     int posicionX;
     int posicionY;
+    int contadorY;
     int furia;
 } Jugador;
+
+
 
 int turno = 1;
 int movimientos = 0;
 
 Jugador jugador1, jugador2;
+
 Jugador* atacante = &jugador1;
 Jugador* defensor = &jugador2;
 
@@ -30,6 +34,7 @@ void EvaluarVictoria();
 void IncrementarMov();
 bool AtaqueExitoso();
 void validarBordes();
+void ComprobarPosY();
 
 void ImprimirEstado();
 void imprimirUbicacionJugadores();
@@ -69,8 +74,10 @@ int yylex();
 
 %%
 movimientos: 
-  | movimientos movimiento ' ';
-  | movimientos movimiento '\n';
+  | movimientos movimiento ' '
+  | movimientos movimiento '\n'
+  | movimientos error
+  ;
 
 movimiento:
     //ATAQUES BASICOS
@@ -143,8 +150,18 @@ bool AtaqueExitoso(){
     }
 
 }
+void ComprobarPosY(Jugador *jugador){
+    if(jugador->posicionY!=2){
+        if(jugador->contadorY==2){
+            jugador->posicionY=2;
+            jugador->contadorY=0;
+        }else{
+            jugador->contadorY++;
+        }
+    }
+}
 void IncrementarMov(){
-    
+
     movimientos++;
     if(movimientos==2){
         if(atacante == &jugador1){
@@ -157,6 +174,8 @@ void IncrementarMov(){
         movimientos = 0;
     }
     turno++;
+    ComprobarPosY(&jugador1);
+    ComprobarPosY(&jugador2);
     EvaluarVictoria();
 }
 void validarBordes(Jugador* jugador){
@@ -178,23 +197,28 @@ void validarFuria(){
 //ATAQUES ESPECIALES
 void ataqueEspecial(Jugador *jugador,char *nombre){
     limpiarConsola();
-    if(comparaStr(jugador->nombre,nombre)){
-        if(atacante->furia==100){
-            if(AtaqueExitoso()){
-                printf("\nIMPACTA!\n\n");
-                defensor->vida-=60;
-                defensor->furia+=40;
+    if(movimientos==0){
+        if(comparaStr(jugador->nombre,nombre)){
+            if(atacante->furia==100){
+                if(AtaqueExitoso()){
+                    printf("\nIMPACTA!\n\n");
+                    defensor->vida-=60;
+                    defensor->furia+=40;
+                }else{
+                    printf("\nFALLA!\n\n");
+                }
             }else{
-                printf("\nFALLA!\n\n");
+                printf("\nNO TIENE SUFICIENTE FURIA!\n\n");
             }
         }else{
-            printf("\nNO TIENE SUFICIENTE FURIA!\n\n");
+            printf("\nESE MOVIMIENTO NO ES TUYO!\n\n");
         }
+        movimientos++;
+        IncrementarMov();
+        validarFuria();
     }else{
-        printf("\nESE MOVIMIENTO NO ES TUYO!\n\n");
+        printf("\nNecesitas dos movimientos para realizar esto.\n");
     }
-    IncrementarMov();
-    validarFuria();
     ImprimirEstado("intenta ATAQUE ESPECIAL!!!",jugador);
 }
 
@@ -329,6 +353,7 @@ void ESQUIVAR(Jugador* jugador) {
     limpiarConsola();
 
     jugador->posicionY=0;
+    jugador->contadorY=0;
 
     IncrementarMov();
     ImprimirEstado("ESQUIVA",jugador);
@@ -337,15 +362,17 @@ void AGACHARSE(Jugador* jugador) {
     limpiarConsola();
 
     jugador->posicionY=1;
+    jugador->contadorY=0;
 
     IncrementarMov();
     ImprimirEstado("se AGACHA",jugador);
 }
 void SALTAR(Jugador* jugador) {
     limpiarConsola();
-
-    jugador->posicionY=3;
-
+    if(jugador->posicionY!=3){
+        jugador->posicionY=3;
+        jugador->contadorY=0;
+    }
     IncrementarMov();
     ImprimirEstado("SALTA",jugador);
 }
@@ -356,6 +383,8 @@ void RODAR_IZQUIERDA(Jugador* jugador) {
 
     jugador->posicionX-=2;
     jugador->posicionY=1;
+    jugador->contadorY=0;
+
 
     validarBordes(jugador);
     IncrementarMov();
@@ -366,6 +395,8 @@ void RODAR_DERECHA(Jugador* jugador) {
 
     jugador->posicionX+=2;
     jugador->posicionY=1;
+    jugador->contadorY=0;
+
 
     validarBordes(jugador);
     IncrementarMov();
@@ -377,6 +408,7 @@ void CORRER_Y_RODAR(Jugador* jugador) {
 
     jugador->posicionX+=4;
     jugador->posicionY=1;
+    jugador->contadorY=0;
 
     validarBordes(jugador);
     IncrementarMov();
@@ -414,24 +446,38 @@ void ImprimirEstado(char *mov,Jugador *jugador){
 }
 void imprimirUbicacionJugadores(){
     char campo[CAMPO + 1];  // +1 para el carácter nulo al final
+    char aire[CAMPO + 1];  // +1 para el carácter nulo al final
 
+    for (int i = 0; i < CAMPO; i++) {
+        aire[i] = ' ';
+    }    
     // Inicializar el campo con guiones bajos ('_')
+
     for (int i = 0; i < CAMPO; i++) {
         campo[i] = '_';
     }
     campo[CAMPO] = '\0';  // Termina la cadena
+    aire[CAMPO] = '\0';  // Termina la cadena
+
 
     // Verificar que las posiciones de los jugadores estén dentro del campo
-        int pos1 = jugador1.posicionX;
+        int pos1x = jugador1.posicionX;
+        int pos1y = jugador1.posicionY;
     
-        int pos2 = jugador2.posicionX;
+        int pos2x = jugador2.posicionX;
+        int pos2y = jugador2.posicionY;
     
-    if(pos1>=0){
-        campo[pos1] = 'O';  // 'O' representa al jugador 1
-    }if(pos2>=0){
-        campo[pos2] = 'X';  // 'X' representa al jugador 2
+    if(pos1x>=0){
+        if(pos1y==3){aire[pos1x]='O';}
+        if(pos1y==2){campo[pos1x] = 'O';}  // 'X' representa al jugador 2
+        if(pos1y==1){campo[pos1x] = 'o';}
+    }if(pos2x>=0){
+        if(pos2y==3){aire[pos2x]='X';}
+        if(pos2y==2){campo[pos2x] = 'X';}  // 'X' representa al jugador 2
+        if(pos2y==1){campo[pos2x] = 'x';}
     }
     // Imprimir el campo con las posiciones de los jugadores
+    printf("%s\n", aire);
     printf("%s\n", campo);
 }
 void limpiarConsola(){
@@ -444,9 +490,12 @@ bool comparaStr (char entrada[],char modelo[]){
         return false;
     return true;
 }
-void yyerror(const char *s) {}
+void yyerror(const char *s) {
+    fprintf(stderr,"Movimiento no reconocido.\n");
+    yyclearin;
+}
 
-void leerParametros(const char* filename) {
+void InicializarPJS(const char* filename) {
     FILE* archivo_parametros = fopen(filename, "r");
     if (!archivo_parametros) {
         perror("No se pudo abrir el archivo de parámetros");
@@ -469,7 +518,10 @@ void leerParametros(const char* filename) {
     // Leer la línea 3: Posición de los jugadores
     fscanf(archivo_parametros, "%d %d", &pos1, &pos2);
     jugador1.posicionX = pos1;
+    jugador1.posicionY = 2;
     jugador2.posicionX = pos2;
+    jugador2.posicionY = 2;
+
 
     // Leer la línea 4: Furia de los jugadores
     fscanf(archivo_parametros, "%d %d", &furia1, &furia2);
@@ -482,7 +534,7 @@ void leerParametros(const char* filename) {
 int main(int argc, char** argv) {
     srand(time(NULL));
 
-    leerParametros("parametros.txt");
+    InicializarPJS("parametros.txt");
 
     if (argc > 1) {
         // Si se pasa un archivo como argumento, ábrelo
@@ -493,6 +545,7 @@ int main(int argc, char** argv) {
         }
         yyin = archivo_movimientos;  // Asigna el archivo a Flex
     }
+
     ImprimirEstado("",&jugador1);
 
     // Iniciar el análisis del archivo o entrada estándar
